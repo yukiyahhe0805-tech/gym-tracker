@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f97316",
         borderRadius: 12,
         paddingVertical: 14,
-        alignItems: "center",
+        alignItems: "center", //jajrojdjsa
         marginTop: 10,
     },
     addButtonText: {
