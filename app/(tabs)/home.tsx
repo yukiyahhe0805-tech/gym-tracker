@@ -1,99 +1,145 @@
-// app/index.tsx
-import React from "react";
-import 'react-native-gesture-handler';
+import React, { useState } from "react";
+import {
+    View,
+    Text,
+    TouchableOpacity,
+    StyleSheet,
+    SafeAreaView,
+    FlatList,
+    Alert,
+} from "react-native";
 
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, SafeAreaView } from "react-native";
-
-const workoutDays = [
-    { id: "1", name: "Chest", entries: 12 },
-    { id: "2", name: "Back", entries: 9 },
-    { id: "3", name: "Arms", entries: 14 },
-    { id: "4", name: "Shoulders", entries: 8 },
-    { id: "5", name: "Legs", entries: 10 },
-];
-
-const historyData = [
-    { id: "h1", date: "Sep 30, 2025", details: "Bench 5x5 @185lb, Incline DB 3x10, Flyes 3x12" },
-    { id: "h2", date: "Sep 23, 2025", details: "Bench 5x5 @180lb, Dips 3x8, Pushups 3x20" },
-    { id: "h3", date: "Sep 16, 2025", details: "Pause Bench 4x4, Cable Fly 3x15, Triceps 3x12" },
+const initialDays = [
+    { id: "1", name: "Chest", entries: 0 },
+    { id: "2", name: "Back", entries: 0 },
+    { id: "3", name: "Arms", entries: 0 },
+    { id: "4", name: "Shoulders", entries: 0 },
+    { id: "5", name: "Legs", entries: 0 },
 ];
 
 export default function HomeScreen() {
+    const [workoutDays, setWorkoutDays] = useState(initialDays);
+
+    // Add a new day
+    const addCustomDay = () => {
+        Alert.prompt(
+            "New Workout Day",
+            "Enter a name for your custom day:",
+            (text) => {
+                if (text && text.trim() !== "") {
+                    setWorkoutDays((prev) => [
+                        ...prev,
+                        { id: Date.now().toString(), name: text, entries: 0 },
+                    ]);
+                }
+            }
+        );
+    };
+
+    // Delete a day
+    const deleteDay = (id: string, name: string) => {
+        Alert.alert(
+            "Delete Day",
+            `Are you sure you want to delete "${name}"?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => {
+                        setWorkoutDays((prev) => prev.filter((day) => day.id !== id));
+                    },
+                },
+            ]
+        );
+    };
+
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.header}>Workout Tracker</Text>
+            {/* Centered header */}
+            <Text style={styles.header}>Select Your Day</Text>
 
-            <Text style={styles.sectionTitle}>Workout Days</Text>
-            <View style={styles.daysContainer}>
-                {workoutDays.map((day) => (
-                    <TouchableOpacity key={day.id} style={styles.dayCard}>
-                        <Text style={styles.dayName}>{day.name}</Text>
-                        <Text style={styles.dayEntries}>{day.entries} entries</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+            <View style={styles.contentWrapper}>
+                <Text style={styles.sectionTitle}>Workout Days</Text>
 
-            <Text style={styles.sectionTitle}>Chest Day</Text>
-            <FlatList
-                data={historyData}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                    <View style={styles.historyCard}>
-                        <Text style={styles.historyDate}>{item.date}</Text>
-                        <Text style={styles.historyDetails}>{item.details}</Text>
-                    </View>
-                )}
-            />
+                <FlatList
+                    contentContainerStyle={{ paddingBottom: 80 }}
+                    data={workoutDays}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item }) => (
+                        <TouchableOpacity
+                            style={styles.card}
+                            onLongPress={() => deleteDay(item.id, item.name)} // delete on long press
+                        >
+                            <Text style={styles.dayName}>{item.name}</Text>
+                            <View style={styles.entryBadge}>
+                                <Text style={styles.entryText}>{item.entries} entries</Text>
+                            </View>
+                        </TouchableOpacity>
+                    )}
+                />
 
-            <TouchableOpacity style={styles.addButton}>
-                <Text style={styles.addButtonText}>Add entry</Text>
-            </TouchableOpacity>
-
-            <View style={styles.navBar}>
-                <Text style={styles.navItem}>Home</Text>
-                <Text style={styles.navItem}>Schedule</Text>
-                <Text style={styles.navItem}>Profile</Text>
+                {/* + Day Button */}
+                <TouchableOpacity style={styles.addButton} onPress={addCustomDay}>
+                    <Text style={styles.addButtonText}>+ Add Day</Text>
+                </TouchableOpacity>
             </View>
         </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#0f172a", padding: 20 },
-    header: { fontSize: 22, fontWeight: "bold", color: "#fff", marginBottom: 20 },
-    sectionTitle: { fontSize: 18, fontWeight: "600", color: "#cbd5e1", marginTop: 10 },
-    daysContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 10 },
-    dayCard: {
-        backgroundColor: "#1e293b",
-        borderRadius: 10,
-        padding: 15,
-        margin: 5,
-        minWidth: "45%",
+    container: {
+        flex: 1,
+        backgroundColor: "#0f172a",
+        paddingHorizontal: 20,
+        paddingTop: 40,
     },
-    dayName: { fontSize: 16, fontWeight: "600", color: "#f8fafc" },
-    dayEntries: { fontSize: 12, color: "#94a3b8" },
-    historyCard: {
-        backgroundColor: "#1e293b",
-        borderRadius: 8,
-        padding: 12,
-        marginVertical: 6,
+    header: {
+        fontSize: 28,
+        fontWeight: "bold",
+        color: "#fff",
+        textAlign: "center",
+        marginTop: 60,   // ⬅️ pushes "Select Your Day" lower
+        marginBottom: 50,
     },
-    historyDate: { color: "#f1f5f9", fontWeight: "600" },
-    historyDetails: { color: "#94a3b8", fontSize: 13 },
+    contentWrapper: {
+        flex: 1,
+        marginTop: 20,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: "600",
+        color: "#cbd5e1",
+        marginBottom: 20,
+    },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#1e293b",
+        padding: 18,
+        borderRadius: 14,
+        marginBottom: 14,
+    },
+    dayName: { fontSize: 18, fontWeight: "600", color: "#f8fafc" },
+    entryBadge: {
+        backgroundColor: "#334155",
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    entryText: { color: "#cbd5e1", fontSize: 13, fontWeight: "500" },
     addButton: {
         backgroundColor: "#f97316",
-        borderRadius: 8,
-        padding: 15,
+        borderRadius: 12,
+        paddingVertical: 14,
         alignItems: "center",
-        marginVertical: 15,
+        marginTop: 10,
     },
-    addButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-    navBar: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        paddingVertical: 10,
-        borderTopWidth: 1,
-        borderColor: "#334155",
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "700",
+        fontSize: 16,
     },
-    navItem: { color: "#cbd5e1", fontWeight: "600" },
 });
