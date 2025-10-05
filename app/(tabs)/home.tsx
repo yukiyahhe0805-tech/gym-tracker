@@ -8,6 +8,7 @@ import {
     FlatList,
     Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 
 const initialDays = [
     { id: "1", name: "Chest", entries: 0 },
@@ -19,17 +20,18 @@ const initialDays = [
 
 export default function HomeScreen() {
     const [workoutDays, setWorkoutDays] = useState(initialDays);
+    const router = useRouter();
 
     // Add a new day
     const addCustomDay = () => {
-        Alert.prompt(
+        Alert.prompt?.(
             "New Workout Day",
             "Enter a name for your custom day:",
             (text) => {
                 if (text && text.trim() !== "") {
                     setWorkoutDays((prev) => [
                         ...prev,
-                        { id: Date.now().toString(), name: text, entries: 0 },
+                        { id: Date.now().toString(), name: text.trim(), entries: 0 },
                     ]);
                 }
             }
@@ -38,25 +40,19 @@ export default function HomeScreen() {
 
     // Delete a day
     const deleteDay = (id: string, name: string) => {
-        Alert.alert(
-            "Delete Day",
-            `Are you sure you want to delete "${name}"?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => {
-                        setWorkoutDays((prev) => prev.filter((day) => day.id !== id));
-                    },
-                },
-            ]
-        );
+        Alert.alert("Delete Day", `Delete "${name}"?`, [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: () =>
+                    setWorkoutDays((prev) => prev.filter((day) => day.id !== id)),
+            },
+        ]);
     };
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* Centered header */}
             <Text style={styles.header}>Select Your Day</Text>
 
             <View style={styles.contentWrapper}>
@@ -69,6 +65,7 @@ export default function HomeScreen() {
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.card}
+                            onPress={() => router.push(`/workout/${item.name}`)} // 👈 navigate to /workout/[day]
                             onLongPress={() => deleteDay(item.id, item.name)} // delete on long press
                         >
                             <Text style={styles.dayName}>{item.name}</Text>
@@ -79,7 +76,7 @@ export default function HomeScreen() {
                     )}
                 />
 
-                {/* + Day Button */}
+                {/* Add Day Button */}
                 <TouchableOpacity style={styles.addButton} onPress={addCustomDay}>
                     <Text style={styles.addButtonText}>+ Add Day</Text>
                 </TouchableOpacity>
@@ -100,7 +97,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         color: "#fff",
         textAlign: "center",
-        marginTop: 60,   // ⬅️ pushes "Select Your Day" lower
+        marginTop: 60,
         marginBottom: 50,
     },
     contentWrapper: {
@@ -134,7 +131,7 @@ const styles = StyleSheet.create({
         backgroundColor: "#f97316",
         borderRadius: 12,
         paddingVertical: 14,
-        alignItems: "center", //jajrojdjsa
+        alignItems: "center",
         marginTop: 10,
     },
     addButtonText: {
