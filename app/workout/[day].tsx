@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     SafeAreaView,
     ScrollView,
@@ -46,7 +47,19 @@ export default function WorkoutEditor() {
 
     const updateExerciseName = (id: string, name: string) =>
         setExercises((prev) =>
-            prev.map((e) => (e.id === id ? { ...e, name } : e))
+            prev.map((e) => {
+                if (e.id === id) {
+                    if (name.trim() !== "" && e.sets.length === 0) {
+                        return {
+                            ...e,
+                            name,
+                            sets: [{ id: Date.now().toString(), weight: "", reps: "" }],
+                        };
+                    }
+                    return { ...e, name };
+                }
+                return e;
+            })
         );
 
     const addSet = (exerciseId: string) =>
@@ -67,7 +80,9 @@ export default function WorkoutEditor() {
     const clearSets = (exerciseId: string) =>
         setExercises((prev) =>
             prev.map((e) =>
-                e.id === exerciseId ? { ...e, sets: [] } : e
+                e.id === exerciseId
+                    ? { ...e, sets: e.sets.slice(0, -1) } // delete last set only
+                    : e
             )
         );
 
@@ -95,14 +110,32 @@ export default function WorkoutEditor() {
 
     const totalSets = exercises.reduce((sum, e) => sum + e.sets.length, 0);
 
-    const saveEntry = () => {
+    // ✅ Save workout to local storage
+    const saveEntry = async () => {
         if (exercises.length === 0) {
             Alert.alert("Add at least one exercise first!");
             return;
         }
-        console.log("Saving workout:", { date, day, exercises, notes });
-        Alert.alert("Saved!", `Workout saved for ${day} on ${date}`);
-        router.back();
+
+        const newEntry = {
+            id: Date.now().toString(),
+            date,
+            day,
+            exercises,
+            notes,
+        };
+
+        try {
+            const existing = await AsyncStorage.getItem("workout_logs");
+            const logs = existing ? JSON.parse(existing) : [];
+            logs.push(newEntry);
+            await AsyncStorage.setItem("workout_logs", JSON.stringify(logs));
+            Alert.alert("Saved!", `Workout saved for ${day} on ${date}`);
+            router.back();
+        } catch (error) {
+            console.error("Error saving workout:", error);
+            Alert.alert("Error", "Could not save workout data.");
+        }
     };
 
     return (
@@ -133,10 +166,8 @@ export default function WorkoutEditor() {
                     </View>
 
                     {/* Exercises */}
-
                     {exercises.map((ex) => (
                         <View key={ex.id} style={styles.card}>
-                            <Text style={styles.label}>Exercise</Text>
                             <TextInput
                                 placeholder="Exercise name"
                                 placeholderTextColor="#64748b"
@@ -154,7 +185,9 @@ export default function WorkoutEditor() {
                                         <Text style={styles.smallLabel}>Pounds</Text>
                                         <TextInput
                                             value={s.weight}
-                                            onChangeText={(v) => updateSet(ex.id, s.id, "weight", v)}
+                                            onChangeText={(v) =>
+                                                updateSet(ex.id, s.id, "weight", v)
+                                            }
                                             keyboardType="decimal-pad"
                                             style={styles.smallInput}
                                             placeholder="Weight"
@@ -165,7 +198,9 @@ export default function WorkoutEditor() {
                                         <Text style={styles.smallLabel}>Reps</Text>
                                         <TextInput
                                             value={s.reps}
-                                            onChangeText={(v) => updateSet(ex.id, s.id, "reps", v)}
+                                            onChangeText={(v) =>
+                                                updateSet(ex.id, s.id, "reps", v)
+                                            }
                                             keyboardType="number-pad"
                                             style={styles.smallInput}
                                             placeholder="Reps"
@@ -175,17 +210,17 @@ export default function WorkoutEditor() {
                                 </View>
                             ))}
 
-                            {/* Add/Clear buttons */}
+                            {/* Add/Delete buttons */}
                             <View style={styles.setButtons}>
                                 <TouchableOpacity onPress={() => addSet(ex.id)}>
                                     <Text style={styles.addBtn}>Add set</Text>
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => clearSets(ex.id)}>
-                                    <Text style={styles.clearBtn}>Clear sets</Text>
+                                    <Text style={styles.clearBtn}>Delete set</Text>
                                 </TouchableOpacity>
                             </View>
 
-                            {/* Delete exercise */}
+                            {/* Delete Exercise */}
                             <TouchableOpacity
                                 style={styles.deleteExercise}
                                 onPress={() => removeExercise(ex.id)}
@@ -195,6 +230,7 @@ export default function WorkoutEditor() {
                         </View>
                     ))}
 
+                    {/* Add Exercise */}
                     <TouchableOpacity onPress={addExercise} style={styles.addExercise}>
                         <Text style={styles.addExerciseText}>+ Add exercise</Text>
                     </TouchableOpacity>
@@ -226,6 +262,14 @@ export default function WorkoutEditor() {
                     >
                         <Text style={styles.btnText}>Clear</Text>
                     </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.btn, { backgroundColor: "#38bdf8" }]}
+                        onPress={() => router.push(`/workout/logs/${day}`)}
+                    >
+                        <Text style={styles.btnText}>View Logs</Text>
+                    </TouchableOpacity>
+
                     <TouchableOpacity
                         style={[styles.btn, { backgroundColor: "#f97316" }]}
                         onPress={saveEntry}
@@ -233,6 +277,7 @@ export default function WorkoutEditor() {
                         <Text style={styles.btnText}>Save entry</Text>
                     </TouchableOpacity>
                 </View>
+
             </SafeAreaView>
         </>
     );

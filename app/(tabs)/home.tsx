@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     View,
     Text,
@@ -8,7 +8,9 @@ import {
     FlatList,
     Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native"; // ✅ Add this
 
 const initialDays = [
     { id: "1", name: "Chest", entries: 0 },
@@ -21,6 +23,40 @@ const initialDays = [
 export default function HomeScreen() {
     const [workoutDays, setWorkoutDays] = useState(initialDays);
     const router = useRouter();
+
+    // 🔹 Load entry counts from AsyncStorage
+    const loadEntryCounts = async () => {
+        try {
+            const stored = await AsyncStorage.getItem("workout_logs");
+            const logs = stored ? JSON.parse(stored) : [];
+
+            const counts: Record<string, number> = {};
+            logs.forEach((log: any) => {
+                if (log.day) counts[log.day] = (counts[log.day] || 0) + 1;
+            });
+
+            setWorkoutDays((prev) =>
+                prev.map((day) => ({
+                    ...day,
+                    entries: counts[day.name] || 0,
+                }))
+            );
+        } catch (error) {
+            console.error("Error loading workout logs:", error);
+        }
+    };
+
+    // 🔹 Load once when screen first mounts
+    useEffect(() => {
+        loadEntryCounts();
+    }, []);
+
+    // 🔹 Refresh every time screen comes into focus
+    useFocusEffect(
+        useCallback(() => {
+            loadEntryCounts();
+        }, [])
+    );
 
     // Add a new day
     const addCustomDay = () => {
@@ -56,7 +92,7 @@ export default function HomeScreen() {
             <Text style={styles.header}>Select Your Day</Text>
 
             <View style={styles.contentWrapper}>
-                <Text style={styles.sectionTitle}>Workout Days</Text>
+
 
                 <FlatList
                     contentContainerStyle={{ paddingBottom: 80 }}
@@ -65,18 +101,19 @@ export default function HomeScreen() {
                     renderItem={({ item }) => (
                         <TouchableOpacity
                             style={styles.card}
-                            onPress={() => router.push(`/workout/${item.name}`)} // 👈 navigate to /workout/[day]
-                            onLongPress={() => deleteDay(item.id, item.name)} // delete on long press
+                            onPress={() => router.push(`/workout/${item.name}`)}
+                            onLongPress={() => deleteDay(item.id, item.name)}
                         >
                             <Text style={styles.dayName}>{item.name}</Text>
                             <View style={styles.entryBadge}>
-                                <Text style={styles.entryText}>{item.entries} entries</Text>
+                                <Text style={styles.entryText}>
+                                    {item.entries} {item.entries === 1 ? "entry" : "entries"}
+                                </Text>
                             </View>
                         </TouchableOpacity>
                     )}
                 />
 
-                {/* Add Day Button */}
                 <TouchableOpacity style={styles.addButton} onPress={addCustomDay}>
                     <Text style={styles.addButtonText}>+ Add Day</Text>
                 </TouchableOpacity>
