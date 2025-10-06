@@ -89,7 +89,7 @@ export default function HomeScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.header}>Select Your Day</Text>
+            <Text style={styles.header}>Pick a Day</Text>
 
             <View style={styles.contentWrapper}>
 
